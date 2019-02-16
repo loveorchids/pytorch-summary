@@ -1,3 +1,13 @@
+"""
+Code Modified From:
+https://github.com/sksq96/pytorch-summary
+
+Original Author:
+Shubham Chandel
+https://github.com/sksq96
+
+"""
+
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
@@ -40,14 +50,21 @@ def summary(model, input_size, batch_size=-1, device="cuda"):
             and not (module == model)
         ):
             hooks.append(module.register_forward_hook(hook))
+    
+    if type(device) is str:
+        device = device.lower()
+        assert "cuda" in device or "cpu" in device,\
+            "Input device is not valid, please specify 'cuda' or 'cpu' or 'cuda:n' (n means gpu id)"
+        try:
+            device  = torch.device(device)
+        except TypeError:
+            device = torch.device("cpu")
+    elif type(device) is torch.device:
+        pass
+    else:
+        raise TypeError("Input parameter 'device' type is: %s, expect str or torch.device"%(type(device)))
 
-    device = device.lower()
-    assert device in [
-        "cuda",
-        "cpu",
-    ], "Input device is not valid, please specify 'cuda' or 'cpu'"
-
-    if device == "cuda" and torch.cuda.is_available():
+    if device.type  == "cuda" and torch.cuda.is_available():
         dtype = torch.cuda.FloatTensor
     else:
         dtype = torch.FloatTensor
@@ -57,7 +74,7 @@ def summary(model, input_size, batch_size=-1, device="cuda"):
         input_size = [input_size]
 
     # batch_size of 2 for batchnorm
-    x = [torch.rand(2, *in_size).type(dtype) for in_size in input_size]
+    x = [torch.rand(2, *in_size).type(dtype).to(device) for in_size in input_size]
     # print(type(x[0]))
 
     # create properties
